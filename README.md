@@ -1,13 +1,16 @@
 # micropython-MaqueenPlusV2
 A set of functions to control the DFRobot Maqueen Plus V2 robot with a BBC micro:bit controler using python.microbit.org. Put the maqueenplusv2.py file in your project by clicking Open... select the file. At the Change files? prompt select the file icon then select Add file maqueenplusv2.py. This last thing is important because otherwise, the default is to throw away the code in main.py.
 
-imports:
+Add imports:
+```python
 from microbit import *
 from maqueenplusv2 import *
+```
 
 first line of code:
+```python
 init_maqueen()
-
+```
 
 init_maqueen() shows the robots version and adjusts the IR line sensors for diferences between version 2.0 and 2.1. 
 
