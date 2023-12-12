@@ -46,8 +46,8 @@ R1 = const(3)
 R2 = const(4)
 
 DIGITAL_SENSOR_STATUS_I2C_ADDR = const(0x1D)
-DIGITAL_SENSOR_MASK = [16,8,4,2,1]
-DIGITAL_SENSOR_SHIFT = [4,3,2,1,0]
+DIGITAL_SENSOR_MASK = [16, 8, 4, 2, 1]
+DIGITAL_SENSOR_SHIFT = [4, 3, 2, 1, 0]
 
 # Ultrasonic Rangefinder constants
 US_TRIGGER = pin13
@@ -71,7 +71,7 @@ SERVO_1 = const(0x14)
 SERVO_2 = const(0x15)
 SERVO_3 = const(0x16)
 
-# NeoPixel constants
+# NeoPixel constatnts
 NEO_PIXEL_PIN = pin15
 RED = const(0xFF0000)
 ORANGE = const(0xFFA500)
@@ -94,7 +94,7 @@ def init_maqueen():
     if version[-3:] == "2.0":
         pass
     elif version[-3:] == "2.1":
-        sensor_index = [4, 3, 2, 1, 0] # reverse the order of ADC addresses
+        sensor_index = [4, 3, 2, 1, 0]
     display.show(Image("00009:" "00090:" "90900:" "09000:" "00000"))
     sleep_s(1)
     display.clear()
@@ -155,9 +155,9 @@ def motors(l_speed, l_direction, r_speed, r_direction):
     buf = bytearray(5)
     buf[0] = LEFT_MOTOR_I2C_ADDR
     buf[1] = one_bit(l_direction)
-    buf[2] = eight_bits(l_speed)
+    buf[2] = eight_bits(round(l_speed))
     buf[3] = one_bit(r_direction)
-    buf[4] = eight_bits(r_speed)
+    buf[4] = eight_bits(round(r_speed))
     i2c.write(I2C_ADDR, buf)
 
 
@@ -181,10 +181,11 @@ def read_line_sensor(sensor):
 
 def sensor_on_line(sensor):
     "Return True if the line sensor sees a line."
-    i2c.write(I2C_ADDR,bytes([DIGITAL_SENSOR_STATUS_I2C_ADDR]))
-    sensor_state = int.from_bytes(i2c.read(I2C_ADDR,1),"big")
-    return (sensor_state & DIGITAL_SENSOR_MASK[sensor]) >> DIGITAL_SENSOR_SHIFT[sensor] == 1
-    
+    i2c.write(I2C_ADDR, bytes([DIGITAL_SENSOR_STATUS_I2C_ADDR]))
+    sensor_state = int.from_bytes(i2c.read(I2C_ADDR, 1), "big")
+    return (sensor_state & DIGITAL_SENSOR_MASK[sensor]) >> DIGITAL_SENSOR_SHIFT[
+        sensor
+    ] == 1
 
 
 # Ultrasonic Rangefinder function
@@ -207,7 +208,7 @@ def set_servo_angle(servo, angle):
     i2c.write(I2C_ADDR, bytes([servo, angle]))
 
 
-# LED headlights functions
+# LED head light functions
 def headlights(select, state):
     "Turn on or off the two front headlights. LEFT, RIGHT, or BOTH."
     if select == LEFT:
