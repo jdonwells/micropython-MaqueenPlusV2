@@ -23,6 +23,7 @@ motors(left speed, left direction, right speed, right direction) starts the moto
 
 read_all_line_sensors() returns an array with 5 analog readings from the 5 IR line sensors. Left rear, left, middle, right, right rear.
 read_line_sensor(sensor) returns a single analog reading from the sensor chosen. Sensor can be L2, L1, M, R1, R2.
+sensor_on_line(sensor) returns True if the sensor is over a black line.
 
 rangefinder() returns the ultrasonic rangefinder distance in centimeters.
 
