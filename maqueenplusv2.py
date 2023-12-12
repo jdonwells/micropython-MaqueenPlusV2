@@ -1,10 +1,8 @@
-from microbit import i2c
+from microbit import *
 from micropython import const
-from microbit import pin13, pin14, pin15
 from machine import time_pulse_us
 from time import sleep_us, sleep_ms, sleep as sleep_s
-from neopixel import *
-from microbit import *
+from neopixel import NeoPixel
 
 # i2c bus location on the micro:bit.
 # NAME_I2C_ADDR are adresses for robot components on the i2c bus.
@@ -25,11 +23,12 @@ BACKWARD = const(1)
 
 # IR sensor constants for version 2.1
 LINE_SENSOR_I2C_ADDR = const(0x1D)
-ANALOG_R2_I2C_ADDR = const(0x1E)
-ANALOG_R1_I2C_ADDR = const(0x20)
-ANALOG_M_I2C_ADDR = const(0x22)
-ANALOG_L1_I2C_ADDR = const(0x24)
 ANALOG_L2_I2C_ADDR = const(0x26)
+ANALOG_L1_I2C_ADDR = const(0x24)
+ANALOG_M_I2C_ADDR = const(0x22)
+ANALOG_R1_I2C_ADDR = const(0x20)
+ANALOG_R2_I2C_ADDR = const(0x1E)
+
 ALL_ANALOG_SENSOR_I2C_ADDRS = [
     ANALOG_L2_I2C_ADDR,
     ANALOG_L1_I2C_ADDR,
@@ -40,11 +39,15 @@ ALL_ANALOG_SENSOR_I2C_ADDRS = [
 
 sensor_index = [0, 1, 2, 3, 4]
 
-R2 = const(0)
-R1 = const(1)
+L2 = const(0)
+L1 = const(1)
 M = const(2)
-L1 = const(3)
-L2 = const(4)
+R1 = const(3)
+R2 = const(4)
+
+DIGITAL_SENSOR_STATUS_I2C_ADDR = const(0x1D)
+DIGITAL_SENSOR_MASK = [16,8,4,2,1]
+DIGITAL_SENSOR_SHIFT = [4,3,2,1,0]
 
 # Ultrasonic Rangefinder constants
 US_TRIGGER = pin13
@@ -68,7 +71,7 @@ SERVO_1 = const(0x14)
 SERVO_2 = const(0x15)
 SERVO_3 = const(0x16)
 
-# NeoPixel constatnts
+# NeoPixel constants
 NEO_PIXEL_PIN = pin15
 RED = const(0xFF0000)
 ORANGE = const(0xFFA500)
@@ -89,20 +92,20 @@ def init_maqueen():
     version = maqueen_version()
     display.scroll(version[-3:])
     if version[-3:] == "2.0":
-        sensor_index = [4, 3, 2, 1, 0]
-    elif version[-3:] == "2.1":
         pass
+    elif version[-3:] == "2.1":
+        sensor_index = [4, 3, 2, 1, 0] # reverse the order of ADC addresses
     display.show(Image("00009:" "00090:" "90900:" "09000:" "00000"))
     sleep_s(1)
     display.clear()
 
 
-def only8bits(n):
+def eight_bits(n):
     return max(min(n, 255), 0)
 
 
-def oneBit(n):
-    return n % 2
+def one_bit(n):
+    return max(min(n, 1), 0)
 
 
 def maqueen_version():
@@ -151,10 +154,10 @@ def motors(l_speed, l_direction, r_speed, r_direction):
     "Set both motor speeds 0-255 and directions (FORWARD, BACKWARD) left then right."
     buf = bytearray(5)
     buf[0] = LEFT_MOTOR_I2C_ADDR
-    buf[1] = oneBit(l_direction)
-    buf[2] = only8bits(l_speed)
-    buf[3] = oneBit(r_direction)
-    buf[4] = only8bits(r_speed)
+    buf[1] = one_bit(l_direction)
+    buf[2] = eight_bits(l_speed)
+    buf[3] = one_bit(r_direction)
+    buf[4] = eight_bits(r_speed)
     i2c.write(I2C_ADDR, buf)
 
 
@@ -163,7 +166,7 @@ def read_all_line_sensors():
     "Return an array of line sensor readings. Left to right."
     values = []
     for index in sensor_index:
-        i2c.write(I2C_ADDR, bytearray([ALL_ANALOG_SENSOR_I2C_ADDRS[index]]))
+        i2c.write(I2C_ADDR, bytes([ALL_ANALOG_SENSOR_I2C_ADDRS[index]]))
         buffer = i2c.read(I2C_ADDR, 2)
         values.append(buffer[1] << 8 | buffer[0])
     return values
@@ -171,9 +174,17 @@ def read_all_line_sensors():
 
 def read_line_sensor(sensor):
     "Return a line sensor reading. On a line is about 240. Off line is about 70."
-    i2c.write(I2C_ADDR, bytearray([ALL_ANALOG_SENSOR_I2C_ADDRS[sensor_index[sensor]]]))
+    i2c.write(I2C_ADDR, bytes([ALL_ANALOG_SENSOR_I2C_ADDRS[sensor_index[sensor]]]))
     buffer = i2c.read(I2C_ADDR, 2)
     return buffer[1] << 8 | buffer[0]
+
+
+def sensor_on_line(sensor):
+    "Return True if the line sensor sees a line."
+    i2c.write(I2C_ADDR,bytes([DIGITAL_SENSOR_STATUS_I2C_ADDR]))
+    sensor_state = int.from_bytes(i2c.read(I2C_ADDR,1),"big")
+    return (sensor_state & DIGITAL_SENSOR_MASK[sensor]) >> DIGITAL_SENSOR_SHIFT[sensor] == 1
+    
 
 
 # Ultrasonic Rangefinder function
@@ -190,7 +201,13 @@ def rangefinder():
     return int(pulse_length * SPEED_OF_SOUND / 2)  # round trip distance so divide by 2
 
 
-# LED head light functions
+# Servo functions
+def set_servo_angle(servo, angle):
+    "Set a servo to a specific angle."
+    i2c.write(I2C_ADDR, bytes([servo, angle]))
+
+
+# LED headlights functions
 def headlights(select, state):
     "Turn on or off the two front headlights. LEFT, RIGHT, or BOTH."
     if select == LEFT:
@@ -199,12 +216,6 @@ def headlights(select, state):
         i2c.write(I2C_ADDR, bytearray([RIGHT_LED_I2C_ADDR, state]))
     else:
         i2c.write(I2C_ADDR, bytearray([LEFT_LED_I2C_ADDR, state, state]))
-
-
-# Servo functions
-def set_servo_angle(servo, angle):
-    "Set a servo to a specific angle."
-    i2c.write(I2C_ADDR, bytes([servo, angle]))
 
 
 # Underglow lighting functions
