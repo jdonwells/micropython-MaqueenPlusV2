@@ -130,24 +130,28 @@ def stop():
     drive(0)
 
 
-def drive(speed):
+def drive(speed_left, speed_right=None):
     "Drive forward at speed 0-255"
-    motors(speed, FORWARD, speed, FORWARD)
+    if speed_right == None: speed_right = speed_left
+    motors(speed_left, FORWARD, speed_right, FORWARD)
 
 
-def backup(speed):
+def backup(speed_left, speed_right=None):
     "Drive backwards at speed 0-255"
-    motors(speed, BACKWARD, speed, BACKWARD)
+    if speed_right == None: speed_right = speed_left
+    motors(speed_left, BACKWARD, speed_right, BACKWARD)
 
 
-def spin_left(speed):
+def spin_left(speed_left, speed_right=None):
     "Spin the robot left at speed 0-255"
-    motors(speed, BACKWARD, speed, FORWARD)
+    if speed_right == None: speed_right = speed_left
+    motors(speed_left, BACKWARD, speed_right, FORWARD)
 
 
-def spin_right(speed):
+def spin_right(speed_left, speed_right=None):
     "Spin the robot right at speed 0-255"
-    motors(speed, FORWARD, speed, BACKWARD)
+    if speed_right == None: speed_right = speed_left
+    motors(speed_left, FORWARD, speed_right, BACKWARD)
 
 
 def motors(l_speed, l_direction, r_speed, r_direction):
@@ -183,9 +187,7 @@ def sensor_on_line(sensor):
     "Return True if the line sensor sees a line."
     i2c.write(I2C_ADDR, bytes([DIGITAL_SENSOR_STATUS_I2C_ADDR]))
     sensor_state = int.from_bytes(i2c.read(I2C_ADDR, 1), "big")
-    return (sensor_state & DIGITAL_SENSOR_MASK[sensor]) >> DIGITAL_SENSOR_SHIFT[
-        sensor
-    ] == 1
+    return (sensor_state & DIGITAL_SENSOR_MASK[sensor]) >> DIGITAL_SENSOR_SHIFT[sensor] == 1
 
 
 # Ultrasonic Rangefinder function
