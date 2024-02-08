@@ -129,7 +129,7 @@ def color_to_rgb(color):
 
 
 def headlights(light, color):
-    "Turn on or off the two front headlights. LEFT, RIGHT, or BOTH."
+    "Turn the LEFT, RIGHT, or BOTH headlights to some color RED, BLUE, etc. or OFF."
     if light != RIGHT:
         I2C_send(LEFT_LED_I2C_ADDR, *color_to_rgb(color))
     if light != LEFT:
