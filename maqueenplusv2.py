@@ -37,7 +37,7 @@ ALL_ANALOG_SENSOR_I2C_ADDRS = [
     ANALOG_R2_I2C_ADDR,
 ]
 
-sensor_index = [0, 1, 2, 3, 4]
+sensor_index = [4, 3, 2, 1, 0]
 
 L2 = const(0)
 L1 = const(1)
@@ -92,7 +92,7 @@ def init_maqueen():
     version = maqueen_version()
     display.scroll(version[-3:])
     if version[-3:] == "2.0":
-        pass
+        sensor_index = [0, 1, 2, 3, 4]
     elif version[-3:] == "2.1":
         sensor_index = [4, 3, 2, 1, 0]
     display.show(Image("00009:" "00090:" "90900:" "09000:" "00000"))
@@ -142,16 +142,14 @@ def backup(speed_left, speed_right=None):
     motors(speed_left, BACKWARD, speed_right, BACKWARD)
 
 
-def spin_left(speed_left, speed_right=None):
+def spin_left(speed):
     "Spin the robot left at speed 0-255"
-    if speed_right == None: speed_right = speed_left
-    motors(speed_left, BACKWARD, speed_right, FORWARD)
+    motors(speed, BACKWARD, speed, FORWARD)
 
 
-def spin_right(speed_left, speed_right=None):
+def spin_right(speed):
     "Spin the robot right at speed 0-255"
-    if speed_right == None: speed_right = speed_left
-    motors(speed_left, FORWARD, speed_right, BACKWARD)
+    motors(speed, FORWARD, speed, BACKWARD)
 
 
 def motors(l_speed, l_direction, r_speed, r_direction):
@@ -187,13 +185,15 @@ def sensor_on_line(sensor):
     "Return True if the line sensor sees a line."
     i2c.write(I2C_ADDR, bytes([DIGITAL_SENSOR_STATUS_I2C_ADDR]))
     sensor_state = int.from_bytes(i2c.read(I2C_ADDR, 1), "big")
-    return (sensor_state & DIGITAL_SENSOR_MASK[sensor]) >> DIGITAL_SENSOR_SHIFT[sensor] == 1
+    return (sensor_state & DIGITAL_SENSOR_MASK[sensor]) >> DIGITAL_SENSOR_SHIFT[
+        sensor
+    ] == 1
 
 
 # Ultrasonic Rangefinder function
 def rangefinder():
     "Return a range in centimeters from 2 to 450."
-    US_TRIGGER.write_digital(0)
+    US_TRIGGER.write_digital(0) # reset the trigger pin
     sleep_us(2)
     US_TRIGGER.write_digital(1)
     sleep_us(10)  # we need trigger pin high for at least 10 microseconds
@@ -206,13 +206,13 @@ def rangefinder():
 
 # Servo functions
 def set_servo_angle(servo, angle):
-    "Set a servo to a specific angle."
+    "Set a servo to a specific angle. Usually 0 to 180."
     i2c.write(I2C_ADDR, bytes([servo, angle]))
 
 
 # LED head light functions
 def headlights(select, state):
-    "Turn on or off the two front headlights. LEFT, RIGHT, or BOTH."
+    "Turn LEFT, RIGHT, or BOTH headlights to ON or OFF."
     if select == LEFT:
         i2c.write(I2C_ADDR, bytearray([LEFT_LED_I2C_ADDR, state]))
     elif select == RIGHT:
